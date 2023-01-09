@@ -1,5 +1,5 @@
 useDynLib(MEGENA,.registration = TRUE)
-exportPattern("^calculate.rho.signed",
+exportPattern("^calculate.correlation",
 				"^compute.PFN.par",
 				"^calculate.PFN",
 				"^datExpr",
@@ -15,10 +15,7 @@ exportPattern("^calculate.rho.signed",
 				"^get.DegreeHubStatistic",
 				"^read.geneSet",
 				"^module_convert_to_table",
-				"^draw_sunburst_wt_fill",
-				"^perform.AllPairs.FET",
-				"^perform.ijPairs.FET",
-				"^get_module_hierarchy_graph")
+				"^draw_sunburst_wt_fill")
 importFrom(Rcpp, evalCpp)
 #export(evaluate.boundary)
 #export(iterative.boundaryUpdate)
@@ -36,7 +33,6 @@ importFrom("utils", "combn", "read.delim", "write.table")
 import(doParallel)
 import(igraph)
 import(cluster)
-import(impute)
 import(fpc)
 import(foreach)
 import(ggraph)

@@ -18,13 +18,7 @@ count.FD <- function(rho,thresh.vec)
 } 
 
 
-random.rho <- function(index, datExpr, estimator, threshold) {
-  rho <- abs(cor(datExpr, datExpr[index,], method = estimator))
-  return(count.FD(as.vector(rho[upper.tri(rho)]), threshold))
-}
-
-
-calculate.rho <- function(datExpr, n.perm,FDR.cutoff, estimator = "pearson", rho.thresh = NULL, sort.el = TRUE, cl=NULL)
+calculate.rho <- function(datExpr, n.perm,FDR.cutoff, estimator = "pearson", rho.thresh = NULL, sort.el = TRUE)
 {
 	if (is.null(rownames(datExpr))) rownames(datExpr) <- paste("g",1:nrow(datExpr),sep = "")
 	gid <- rownames(datExpr)
@@ -37,14 +31,11 @@ calculate.rho <- function(datExpr, n.perm,FDR.cutoff, estimator = "pearson", rho
 	nc <- nrow(datExpr)
 	perm.ind <- lapply(1:n.perm,function(i,n) sample(1:n,n),n = nc)
 	
-	perm.rho <- partial(random.rho, datExpr=datExpr, estimator=estimator, threshold=rho.thresh)
-	
-	if (is.null(cl)) {
-      count.out <- lapply(perm.ind, perm.rho)
-	} else {
-      count.out <- parLapply(cl, perm.ind, perm.rho)
+	count.out <- foreach(index=perm.ind) %dopar% {
+		rho <- abs(cor(datExpr, datExpr[index,], method = estimator))
+		count.FD(as.vector(rho[upper.tri(rho)]), rho.thresh)
 	}
-		
+	
 	PR = count.FD(as.vector(rho[upper.tri(rho)]),rho.thresh);PR = PR[,2]
 	FPR = Reduce("+",lapply(count.out,function(x) x[,2]))/n.perm;FPR[1] <- 1;
 	FDR = FPR/PR;FDR[which(FPR == 0)] <- 0;FDR[which(FDR > 1)] <- 1;
@@ -247,7 +238,7 @@ output.permFDR = TRUE,output.corTable = TRUE,saveto = NULL)
   }
  }else{
   
-  rho.output <- calculate.rho(datExpr,n.perm = doPerm,FDR.cutoff = FDR.cutoff,estimator = method,rho.thresh =  seq(0,1,1/n.increment),sort.el = TRUE, cl=cl)
+  rho.output <- calculate.rho(datExpr,n.perm = doPerm,FDR.cutoff = FDR.cutoff,estimator = method,rho.thresh =  seq(0,1,1/n.increment),sort.el = TRUE)
   
   if (output.permFDR)
   {

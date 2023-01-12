@@ -151,7 +151,7 @@ iplanarityTesting <- function(epair,rows,cols,N)
 
     # Perform edge quality check by utilizing parallel computing.
     print(paste("Performing parallel quality checks on ",as.character(enum_all),sep = ""))
-
+    
     # Subset of edges on which quality checks are performed
     outvector <- foreach(batch = 1:length(evector),.packages = "MEGENA") %dopar%
     {
@@ -235,6 +235,11 @@ calculate.PFN <- function (edgelist, max.skipEdges = NULL,maxENum = NULL,doPar =
 	if (is.null(num.cores)) num.cores = 1
     if (is.unsorted(rev(edgelist[[3]]))) edgelist <- edgelist[order(edgelist[[3]], decreasing = T),]
 	if (is.null(max.skipEdges)) max.skipEdges = ceiling((num.cores * 1000) * 0.9999)
+
+	if (doPar) {
+      cl <- parallel::makeCluster(num.cores)
+      registerDoParallel(cl)	
+	}
 	
     vertex.names <- unique(c(as.character(unique(edgelist[[1]])),
         as.character(unique(edgelist[[2]]))))
@@ -254,6 +259,11 @@ calculate.PFN <- function (edgelist, max.skipEdges = NULL,maxENum = NULL,doPar =
             keep.track = keep.track)
     }
     PFN <- data.frame(row = vertex.names[PFN[,1]], col = vertex.names[PFN[,2]], weight = PFN[, 3])
+    
+    if (doPar) {
+      stopCluster(cl)	
+	}
+    
     return(PFN)
 }
 

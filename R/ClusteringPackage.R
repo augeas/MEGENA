@@ -699,14 +699,13 @@ d.func = function(x) {1-x},alpha.range = seq(0.01,10,0.01))
 {
 	con.comp <- get.connectedModule(V(g)$name,g)
 
-	output.mod <- vector("list",length(con.comp))
-	for (i in 1:length(con.comp))
+	output.mod <- foreach (i = con.comp, .packages = "MEGENA") %do%
 	{
-	 gg <- igraph::induced.subgraph(g,con.comp[[i]])
-	 output.mod[[i]] <- nested.kmeans(sub.g = gg,sig.method = sig.method,n.singleton = single.size,k.max = k.max,n.skip = n.skip,
-	 module.pvalue = module.pvalue,d.func = d.func,alpha.range = alpha.range)
+		gg <- igraph::induced.subgraph(g, i)
+		nested.kmeans(sub.g = g,sig.method = sig.method,n.singleton = single.size,k.max = k.max,n.skip = n.skip,
+		module.pvalue = module.pvalue,d.func = d.func,alpha.range = alpha.range)
 	}
-
+	
 	###### combine outputs from all components
 
 	singletons <- list()

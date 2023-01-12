@@ -9,7 +9,7 @@ save.output = FALSE)
 	# mod.pval = module p-value
 	# hub.pval = hub p-value
 	
-	if (doPar & getDoParWorkers() == 1 & num.cores > 1)
+	if (doPar & num.cores > 1)
 	{
 		cl <- makeCluster(num.cores)
 		registerDoParallel(cl)
@@ -51,6 +51,11 @@ save.output = FALSE)
 		output <- list(module.output = module.output,hub.output = hub.output,node.summary = node.table);
 	}else{
 		output <- list(module.output = module.output,hub.output = NA,node.summary = NA)
+	}
+
+	if (doPar & num.cores > 1)
+	{
+		stopCluster(cl)
 	}
 	
 	return(output)

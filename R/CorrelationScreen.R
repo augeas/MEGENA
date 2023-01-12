@@ -17,7 +17,14 @@ count.FD <- function(rho,thresh.vec)
 	 return(output)
 } 
 
-calculate.rho <- function(datExpr,n.perm,FDR.cutoff,estimator = "pearson",rho.thresh = NULL,sort.el = TRUE)
+
+random.rho <- function(index, datExpr, estimator, threshold) {
+  rho <- abs(cor(datExpr, datExpr[index,], method = estimator))
+  return(count.FD(as.vector(rho[upper.tri(rho)]), threshold))
+}
+
+
+calculate.rho <- function(datExpr, n.perm,FDR.cutoff, estimator = "pearson", rho.thresh = NULL, sort.el = TRUE, cl=NULL)
 {
 	if (is.null(rownames(datExpr))) rownames(datExpr) <- paste("g",1:nrow(datExpr),sep = "")
 	gid <- rownames(datExpr)
@@ -26,21 +33,18 @@ calculate.rho <- function(datExpr,n.perm,FDR.cutoff,estimator = "pearson",rho.th
 	
 	if (is.null(rho.thresh)) rho.thresh <- seq(0,1,0.01)
 	
-	
-	
 	#### permute data matrix to calculate FDR
 	nc <- nrow(datExpr)
 	perm.ind <- lapply(1:n.perm,function(i,n) sample(1:n,n),n = nc)
-	count.out <- vector("list",n.perm)
-	for (i in 1:n.perm)
-	{
-		cat("i = ");cat(i);cat("\n");
-		random.rho <- abs(cor(datExpr,datExpr[perm.ind[[i]],],method = estimator))
-		random.rho <- as.vector(random.rho[upper.tri(random.rho)]);
-		
-		count.out[[i]] <- count.FD(random.rho,rho.thresh)
-		rm(random.rho)
+	
+	perm.rho <- partial(random.rho, datExpr=datExpr, estimator=estimator, threshold=rho.thresh)
+	
+	if (is.null(cl)) {
+      count.out <- lapply(perm.ind, perm.rho)
+	} else {
+      count.out <- parLapply(cl, perm.ind, perm.rho)
 	}
+		
 	PR = count.FD(as.vector(rho[upper.tri(rho)]),rho.thresh);PR = PR[,2]
 	FPR = Reduce("+",lapply(count.out,function(x) x[,2]))/n.perm;FPR[1] <- 1;
 	FDR = FPR/PR;FDR[which(FPR == 0)] <- 0;FDR[which(FDR > 1)] <- 1;
@@ -202,6 +206,18 @@ output.permFDR = TRUE,output.corTable = TRUE,saveto = NULL)
  # output.permFDR = TRUE (output permutation indices into .txt file)
  # output.corTable = TRUE (output final correlation into .txt file)
  # saveto = designated save folder
+ 
+	if (doPar & num.cores > 1)
+	{
+		cl <- makeCluster(num.cores)
+		registerDoParallel(cl)
+		# check how many workers are there
+		cat(paste("number of cores to use:",getDoParWorkers(),"\n",sep = ""))
+	} else {
+      cl <- NULL
+	}
+ 
+ 
  if (doPerm == 0)
  {
   if (!doPar)
@@ -231,7 +247,7 @@ output.permFDR = TRUE,output.corTable = TRUE,saveto = NULL)
   }
  }else{
   
-  rho.output <- calculate.rho(datExpr,n.perm = doPerm,FDR.cutoff = FDR.cutoff,estimator = method,rho.thresh =  seq(0,1,1/n.increment),sort.el = TRUE)
+  rho.output <- calculate.rho(datExpr,n.perm = doPerm,FDR.cutoff = FDR.cutoff,estimator = method,rho.thresh =  seq(0,1,1/n.increment),sort.el = TRUE, cl=cl)
   
   if (output.permFDR)
   {
@@ -242,6 +258,10 @@ output.permFDR = TRUE,output.corTable = TRUE,saveto = NULL)
     write.table(rho.output$FDR,file = "correlation_FDR_table.txt",sep = "\t",row.names = F,col.names = T,quote = F)
    }
   }
+ }
+ 
+ if (!is.null(cl)) {
+  stopCluster(cl)
  }
  
  if (output.corTable)

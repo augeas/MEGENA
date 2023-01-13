@@ -89,15 +89,17 @@ iplanarityTesting <- function(epair,rows,cols,N)
   # Planarity testing function object - multiple edge
   iplanarityTestingMultiple <- function(epairs,rows,cols,N)
   {
-   out <- vector("logical",length = dim(epairs)[1]);
-   for (ei in 1:dim(epairs)[1])
-   {
-    nrows <- c(rows,epairs[ei,1]);ncols <- c(cols,epairs[ei,2]);
-    out[ei] <- planaritytest(as.integer(N),nrows,ncols);
-    rm(nrows,ncols);
-   }
-   return(out);
+
+    out <- foreach(ei = 1:dim(epairs)[1], .combine='c') %do% {
+      nrows <- c(rows,epairs[ei,1]);ncols <- c(cols,epairs[ei,2]);
+      planaritytest(as.integer(N),nrows,ncols);
+  } 
+  
+   return(out);  
+  
   }
+  
+  
   # Njob = number of jobs assigned per core.
   # Ncore = number of cores available.
   Ne <- maxENum;
